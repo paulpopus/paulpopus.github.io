@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Intro to MapView - Create a 2D map</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.15/esri/themes/dark/main.css" />
+    <script src="https://js.arcgis.com/4.15/"></script>
+
+    <style>
+      html,
+      body,
+      #map {
+        padding: 0;
+        margin: 0;
+        height: 700px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>My map should be showing here</h1>
+    <span id="layerToggle" class="esri-widget"> <input type="checkbox" id="rwandaDistrictsCheckbox" checked /> Rwanda Districts </span>
+    <span id="labelsToggle" class="esri-widget"> <input type="checkbox" id="labelsCheckbox" checked /> Enable labels </span>
+    <div id="map"></div>
+
+    <script>
+      require(
+        [
+          "esri/Map",
+          "esri/views/SceneView",
+          "esri/layers/TileLayer",
+          "esri/layers/FeatureLayer",
+          "esri/tasks/Locator",
+          "esri/views/MapView",
+          "esri/layers/support/LabelClass",
+          "esri/PopupTemplate",
+          "esri/widgets/BasemapToggle"
+        ]
+      , function(Map, SceneView, TileLayer, FeatureLayer, Locator, MapView, LabelClass, PopupTemplate, BasemapToggle) {
+        const districtName = {  // autocasts as new LabelClass()
+          symbol: {
+            type: "text",  // autocasts as new TextSymbol()
+            color: "white",
+            haloColor: "blue",
+            haloSize: 1,
+            font: {  // autocast as new Font()
+              family: "Ubuntu Mono",
+              size: 13,
+              weight: "bold"
+            }
+          },
+          labelPlacement: "above-right",
+          labelExpressionInfo: {
+            expression: "$feature.district"
+          },
+          maxScale: 0,
+          minScale: 2500000
+        };
+
+        const population = {  // autocasts as new LabelClass()
+          symbol: {
+            type: "text",  // autocasts as new TextSymbol()
+            color: "black",
+            yoffset: -20,
+            font: {  // autocast as new Font()
+              family: "Ubuntu Mono",
+              size: 12,
+              weight: "normal"
+            }
+          },
+          labelPlacement: "below-left",
+          labelExpressionInfo: {
+            expression: "'Population ' + $feature.pop_2012"
+          },
+          maxScale: 0,
+          minScale: 500000
+        };
+
+
+
+        var template = {
+          // autocasts as new PopupTemplate()
+          title: "{district}",
+          content: [
+            {
+              type: "fields",
+              fieldInfos: [
+                {
+                  fieldName: "restored_H", // The field whose values you want to format
+                  label: "Restored hectares",
+                  format: {
+                    digitSeparator: true, // Uses a comma separator in numbers >999
+                    places: 0 // Sets the number of decimal places to 0 and rounds up
+                  }
+                },
+                {
+                  fieldName: "Investment", // The field whose values you want to format
+                  label: "Investment in $",
+                  format: {
+                    digitSeparator: true, // Uses a comma separator in numbers >999
+                    places: 0 // Sets the number of decimal places to 0 and rounds up
+                  }
+                },
+                {
+                  fieldName: "pop_2012", // The field whose values you want to format
+                  label: "Population*",
+                  format: {
+                    digitSeparator: true, // Uses a comma separator in numbers >999
+                    places: 0 // Sets the number of decimal places to 0 and rounds up
+                  }
+                },
+                {
+                  fieldName: "expression/perCapita",
+                  label: "Investment per capita",
+                  format: {
+                    digitSeparator: true, // Uses a comma separator in numbers >999
+                    places: 0 // Sets the number of decimal places to 0 and rounds up
+                  }
+                }
+              ]
+            },
+            {
+              // Autocasts as new TextContent()
+              type: "text",
+              text: "* This data is from 2012."
+            },
+          ],
+          expressionInfos: [
+            {
+              name: "perCapita",
+              title: "Investment per capita",
+              expression: "'$' + Round($feature.Investment / $feature.pop_2012)"
+            },
+          ]
+        };
+
+
+        var rwandaDistrictsLayer = new FeatureLayer({
+          url: "https://services5.arcgis.com/YD9M4X7KdIuQZiAn/arcgis/rest/services/rwanda_district2/FeatureServer",
+          id: "rwandaDistricts",
+          opacity: 0.7,
+          labelingInfo: [population, districtName],
+          popupTemplate: template
+        });
+
+
+        var map = new Map({
+          basemap: "satellite",
+          layers: [rwandaDistrictsLayer]
+        });
+
+        var view = new MapView({
+          container: "map", // Reference to the DOM node that will contain the view
+          map: map, // References the map object created in step 3
+          center: [30.065, -1.953],
+          zoom: 9
+        });
+
+        var basemapToggle = new BasemapToggle({
+          view: view,  // The view that provides access to the map's "streets" basemap
+          nextBasemap: "hybrid"  // Allows for toggling to the "hybrid" basemap
+        });
+
+        var rwandaLayerToggle = document.getElementById("rwandaDistrictsCheckbox");
+
+        // Listen to the change event for the checkbox
+        rwandaLayerToggle.addEventListener("change", function() {
+          // When the checkbox is checked (true), set the layer's visibility to true
+          rwandaDistrictsLayer.visible = rwandaLayerToggle.checked;
+        });
+
+
+        var labelsToggle = document.getElementById("labelsCheckbox");
+
+        labelsToggle.addEventListener("change", function() {
+          // When the checkbox is checked (true), set the layer's visibility to true
+
+          if (labelsToggle.checked) {
+            rwandaDistrictsLayer.labelingInfo = [population, districtName];
+          } else {
+            rwandaDistrictsLayer.labelingInfo = [];
+          }
+        });
+
+
+      });
+    </script>
+  </body>
+</html>
